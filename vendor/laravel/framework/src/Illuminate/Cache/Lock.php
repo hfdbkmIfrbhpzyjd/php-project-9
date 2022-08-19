@@ -153,7 +153,7 @@ abstract class Lock implements LockContract
     }
 
     /**
-     * Specify the number of milliseconds to sleep in between blocked lock acquisition attempts.
+     * Specify the number of milliseconds to sleep in between blocked lock aquisition attempts.
      *
      * @param  int  $milliseconds
      * @return $this

@@ -56,7 +56,7 @@ class RateLimited
             return $next($job);
         }
 
-        $limiterResponse = $limiter($job);
+        $limiterResponse = call_user_func($limiter, $job);
 
         if ($limiterResponse instanceof Unlimited) {
             return $next($job);
@@ -99,7 +99,7 @@ class RateLimited
     }
 
     /**
-     * Do not release the job back to the queue if the limit is exceeded.
+     * Do not release the job back to the queue if limit is exceeded.
      *
      * @return $this
      */
@@ -126,21 +126,25 @@ class RateLimited
      *
      * @return array
      */
-    public function __sleep()
+    public function __serialize()
     {
         return [
-            'limiterName',
-            'shouldRelease',
+            'limiterName' => $this->limiterName,
+            'shouldRelease' => $this->shouldRelease,
         ];
     }
 
     /**
      * Prepare the object after unserialization.
      *
+     * @param  array  $data
      * @return void
      */
-    public function __wakeup()
+    public function __unserialize(array $data)
     {
         $this->limiter = Container::getInstance()->make(RateLimiter::class);
+
+        $this->limiterName = $data['limiterName'];
+        $this->shouldRelease = $data['shouldRelease'];
     }
 }

@@ -58,7 +58,7 @@ abstract class Queue
     }
 
     /**
-     * Push a new job onto a specific queue after (n) seconds.
+     * Push a new job onto the queue after a delay.
      *
      * @param  string  $queue
      * @param  \DateTimeInterface|\DateInterval|int  $delay
@@ -102,9 +102,9 @@ abstract class Queue
             $job = CallQueuedClosure::create($job);
         }
 
-        $payload = json_encode($this->createPayloadArray($job, $queue, $data), \JSON_UNESCAPED_UNICODE);
+        $payload = json_encode($this->createPayloadArray($job, $queue, $data));
 
-        if (json_last_error() !== JSON_ERROR_NONE) {
+        if (JSON_ERROR_NONE !== json_last_error()) {
             throw new InvalidPayloadException(
                 'Unable to JSON encode payload. Error code: '.json_last_error()
             );
@@ -143,7 +143,6 @@ abstract class Queue
             'job' => 'Illuminate\Queue\CallQueuedHandler@call',
             'maxTries' => $job->tries ?? null,
             'maxExceptions' => $job->maxExceptions ?? null,
-            'failOnTimeout' => $job->failOnTimeout ?? false,
             'backoff' => $this->getJobBackoff($job),
             'timeout' => $job->timeout ?? null,
             'retryUntil' => $this->getJobExpiration($job),
@@ -153,15 +152,15 @@ abstract class Queue
             ],
         ]);
 
-        $command = $this->jobShouldBeEncrypted($job) && $this->container->bound(Encrypter::class)
+        $command = $job instanceof ShouldBeEncrypted && $this->container->bound(Encrypter::class)
                     ? $this->container[Encrypter::class]->encrypt(serialize(clone $job))
                     : serialize(clone $job);
 
         return array_merge($payload, [
-            'data' => array_merge($payload['data'], [
+            'data' => [
                 'commandName' => get_class($job),
                 'command' => $command,
-            ]),
+            ],
         ]);
     }
 
@@ -189,11 +188,7 @@ abstract class Queue
             return;
         }
 
-        if (is_null($backoff = $job->backoff ?? $job->backoff())) {
-            return;
-        }
-
-        return collect(Arr::wrap($backoff))
+        return collect(Arr::wrap($job->backoff ?? $job->backoff()))
             ->map(function ($backoff) {
                 return $backoff instanceof DateTimeInterface
                                 ? $this->secondsUntil($backoff) : $backoff;
@@ -219,21 +214,6 @@ abstract class Queue
     }
 
     /**
-     * Determine if the job should be encrypted.
-     *
-     * @param  object  $job
-     * @return bool
-     */
-    protected function jobShouldBeEncrypted($job)
-    {
-        if ($job instanceof ShouldBeEncrypted) {
-            return true;
-        }
-
-        return isset($job->shouldBeEncrypted) && $job->shouldBeEncrypted;
-    }
-
-    /**
      * Create a typical, string based queue payload array.
      *
      * @param  string  $job
@@ -249,7 +229,6 @@ abstract class Queue
             'job' => $job,
             'maxTries' => null,
             'maxExceptions' => null,
-            'failOnTimeout' => false,
             'backoff' => null,
             'timeout' => null,
             'data' => $data,
@@ -259,7 +238,7 @@ abstract class Queue
     /**
      * Register a callback to be executed when creating job payloads.
      *
-     * @param  callable|null  $callback
+     * @param  callable  $callback
      * @return void
      */
     public static function createPayloadUsing($callback)
@@ -282,7 +261,9 @@ abstract class Queue
     {
         if (! empty(static::$createPayloadCallbacks)) {
             foreach (static::$createPayloadCallbacks as $callback) {
-                $payload = array_merge($payload, $callback($this->getConnectionName(), $queue, $payload));
+                $payload = array_merge($payload, call_user_func(
+                    $callback, $this->getConnectionName(), $queue, $payload
+                ));
             }
         }
 
@@ -371,16 +352,6 @@ abstract class Queue
         $this->connectionName = $name;
 
         return $this;
-    }
-
-    /**
-     * Get the container instance being used by the connection.
-     *
-     * @return \Illuminate\Container\Container
-     */
-    public function getContainer()
-    {
-        return $this->container;
     }
 
     /**

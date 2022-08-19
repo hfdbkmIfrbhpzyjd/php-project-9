@@ -1,4 +1,5 @@
 ### Hexlet tests and linter status:
-[![Actions Status](https://github.com/hfdbkmIfrbhpzyjd/php-project-9/workflows/hexlet-check/badge.svg)](https://github.com/hfdbkmIfrbhpzyjd/php-project-9/actions)
+[![Actions Status](https://github.com/Colonizator1/php-project-lvl3/workflows/hexlet-check/badge.svg)](https://github.com/Colonizator1/php-project-lvl3/actions) ![tests](https://github.com/Colonizator1/php-project-lvl3/workflows/tests/badge.svg) [![Maintainability](https://api.codeclimate.com/v1/badges/741ede74e307cf8aea6c/maintainability)](https://codeclimate.com/github/Colonizator1/php-project-lvl3/maintainability)
 
-https://lit-dawn-53269.herokuapp.com/
+## Page Analyzer
+See demo: [https://php-project-lvl3-hfdbkm.herokuapp.com/](https://php-project-lvl3-hfdbkm.herokuapp.com/)

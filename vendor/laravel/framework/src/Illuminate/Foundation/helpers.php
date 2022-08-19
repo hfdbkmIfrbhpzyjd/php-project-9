@@ -28,7 +28,7 @@ if (! function_exists('abort')) {
      * @param  \Symfony\Component\HttpFoundation\Response|\Illuminate\Contracts\Support\Responsable|int  $code
      * @param  string  $message
      * @param  array  $headers
-     * @return never
+     * @return void
      *
      * @throws \Symfony\Component\HttpKernel\Exception\HttpException
      * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
@@ -228,7 +228,7 @@ if (! function_exists('cache')) {
      * @param  dynamic  key|key,default|data,expiration|null
      * @return mixed|\Illuminate\Cache\CacheManager
      *
-     * @throws \InvalidArgumentException
+     * @throws \Exception
      */
     function cache()
     {
@@ -243,7 +243,7 @@ if (! function_exists('cache')) {
         }
 
         if (! is_array($arguments[0])) {
-            throw new InvalidArgumentException(
+            throw new Exception(
                 'When setting a value in the cache, you must pass an array of key / value pairs.'
             );
         }
@@ -390,22 +390,6 @@ if (! function_exists('dispatch')) {
     }
 }
 
-if (! function_exists('dispatch_sync')) {
-    /**
-     * Dispatch a command to its appropriate handler in the current process.
-     *
-     * Queueable jobs will be dispatched to the "sync" queue.
-     *
-     * @param  mixed  $job
-     * @param  mixed  $handler
-     * @return mixed
-     */
-    function dispatch_sync($job, $handler = null)
-    {
-        return app(Dispatcher::class)->dispatchSync($job, $handler);
-    }
-}
-
 if (! function_exists('dispatch_now')) {
     /**
      * Dispatch a command to its appropriate handler in the current process.
@@ -413,8 +397,6 @@ if (! function_exists('dispatch_now')) {
      * @param  mixed  $job
      * @param  mixed  $handler
      * @return mixed
-     *
-     * @deprecated Will be removed in a future Laravel version.
      */
     function dispatch_now($job, $handler = null)
     {
@@ -451,27 +433,6 @@ if (! function_exists('event')) {
     }
 }
 
-if (! function_exists('fake') && class_exists(\Faker\Factory::class)) {
-    /**
-     * Get a faker instance.
-     *
-     * @param  ?string  $locale
-     * @return \Faker\Generator
-     */
-    function fake($locale = null)
-    {
-        $locale ??= app('config')->get('app.faker_locale') ?? 'en_US';
-
-        $abstract = \Faker\Generator::class.':'.$locale;
-
-        if (! app()->bound($abstract)) {
-            app()->singleton($abstract, fn () => \Faker\Factory::create($locale));
-        }
-
-        return app()->make($abstract);
-    }
-}
-
 if (! function_exists('info')) {
     /**
      * Write some information to the log.
@@ -501,19 +462,6 @@ if (! function_exists('logger')) {
         }
 
         return app('log')->debug($message, $context);
-    }
-}
-
-if (! function_exists('lang_path')) {
-    /**
-     * Get the path to the language folder.
-     *
-     * @param  string  $path
-     * @return string
-     */
-    function lang_path($path = '')
-    {
-        return app()->langPath($path);
     }
 }
 
@@ -657,7 +605,7 @@ if (! function_exists('request')) {
      *
      * @param  array|string|null  $key
      * @param  mixed  $default
-     * @return mixed|\Illuminate\Http\Request|string|array|null
+     * @return \Illuminate\Http\Request|string|array|null
      */
     function request($key = null, $default = null)
     {
@@ -693,7 +641,7 @@ if (! function_exists('rescue')) {
                 report($e);
             }
 
-            return value($rescue, $e);
+            return $rescue instanceof Closure ? $rescue($e) : $rescue;
         }
     }
 }
@@ -821,23 +769,7 @@ if (! function_exists('storage_path')) {
      */
     function storage_path($path = '')
     {
-        return app()->storagePath($path);
-    }
-}
-
-if (! function_exists('to_route')) {
-    /**
-     * Create a new redirect response to a named route.
-     *
-     * @param  string  $route
-     * @param  mixed  $parameters
-     * @param  int  $status
-     * @param  array  $headers
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    function to_route($route, $parameters = [], $status = 302, $headers = [])
-    {
-        return redirect()->route($route, $parameters, $status, $headers);
+        return app('path.storage').($path ? DIRECTORY_SEPARATOR.$path : $path);
     }
 }
 

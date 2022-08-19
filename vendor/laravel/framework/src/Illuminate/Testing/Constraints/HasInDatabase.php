@@ -3,7 +3,6 @@
 namespace Illuminate\Testing\Constraints;
 
 use Illuminate\Database\Connection;
-use Illuminate\Database\Query\Expression;
 use PHPUnit\Framework\Constraint\Constraint;
 
 class HasInDatabase extends Constraint
@@ -64,7 +63,7 @@ class HasInDatabase extends Constraint
     {
         return sprintf(
             "a row in the table [%s] matches the attributes %s.\n\n%s",
-            $table, $this->toString(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), $this->getAdditionalInfo($table)
+            $table, $this->toString(JSON_PRETTY_PRINT), $this->getAdditionalInfo($table)
         );
     }
 
@@ -84,17 +83,17 @@ class HasInDatabase extends Constraint
         )->limit($this->show)->get();
 
         if ($similarResults->isNotEmpty()) {
-            $description = 'Found similar results: '.json_encode($similarResults, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            $description = 'Found similar results: '.json_encode($similarResults, JSON_PRETTY_PRINT);
         } else {
             $query = $this->database->table($table);
 
             $results = $query->limit($this->show)->get();
 
             if ($results->isEmpty()) {
-                return 'The table is empty';
+                return 'The table is empty.';
             }
 
-            $description = 'Found: '.json_encode($results, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            $description = 'Found: '.json_encode($results, JSON_PRETTY_PRINT);
         }
 
         if ($query->count() > $this->show) {

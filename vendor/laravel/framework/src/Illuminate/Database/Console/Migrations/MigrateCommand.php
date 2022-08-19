@@ -3,7 +3,6 @@
 namespace Illuminate\Database\Console\Migrations;
 
 use Illuminate\Console\ConfirmableTrait;
-use Illuminate\Console\View\Components\Task;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Events\SchemaLoaded;
 use Illuminate\Database\Migrations\Migrator;
@@ -25,7 +24,6 @@ class MigrateCommand extends BaseCommand
                 {--schema-path= : The path to a schema dump file}
                 {--pretend : Dump the SQL queries that would be run}
                 {--seed : Indicates if the seed task should be re-run}
-                {--seeder= : The class name of the root seeder}
                 {--step : Force the migrations to be run so they can be rolled back individually}';
 
     /**
@@ -81,7 +79,7 @@ class MigrateCommand extends BaseCommand
             // Next, we will check to see if a path option has been defined. If it has
             // we will use the path relative to the root of this installation folder
             // so that migrations may be run for any path within the applications.
-            $migrations = $this->migrator->setOutput($this->output)
+            $this->migrator->setOutput($this->output)
                     ->run($this->getMigrationPaths(), [
                         'pretend' => $this->option('pretend'),
                         'step' => $this->option('step'),
@@ -91,10 +89,7 @@ class MigrateCommand extends BaseCommand
             // seed task to re-populate the database, which is convenient when adding
             // a migration and a seed at the same time, as it is only this command.
             if ($this->option('seed') && ! $this->option('pretend')) {
-                $this->call('db:seed', [
-                    '--class' => $this->option('seeder') ?: 'Database\\Seeders\\DatabaseSeeder',
-                    '--force' => true,
-                ]);
+                $this->call('db:seed', ['--force' => true]);
             }
         });
 
@@ -109,15 +104,9 @@ class MigrateCommand extends BaseCommand
     protected function prepareDatabase()
     {
         if (! $this->migrator->repositoryExists()) {
-            $this->components->info('Preparing database.');
-
-            $this->components->task('Creating migration table', function () {
-                return $this->callSilent('migrate:install', array_filter([
-                    '--database' => $this->option('database'),
-                ])) == 0;
-            });
-
-            $this->newLine();
+            $this->call('migrate:install', array_filter([
+                '--database' => $this->option('database'),
+            ]));
         }
 
         if (! $this->migrator->hasRunAnyMigrations() && ! $this->option('pretend')) {
@@ -142,20 +131,20 @@ class MigrateCommand extends BaseCommand
             return;
         }
 
-        $this->components->info('Loading stored database schemas.');
+        $this->line('<info>Loading stored database schema:</info> '.$path);
 
-        $this->components->task($path, function () use ($connection, $path) {
-            // Since the schema file will create the "migrations" table and reload it to its
-            // proper state, we need to delete it here so we don't get an error that this
-            // table already exists when the stored database schema file gets executed.
-            $this->migrator->deleteRepository();
+        $startTime = microtime(true);
 
-            $connection->getSchemaState()->handleOutputUsing(function ($type, $buffer) {
-                $this->output->write($buffer);
-            })->load($path);
-        });
+        // Since the schema file will create the "migrations" table and reload it to its
+        // proper state, we need to delete it here so we don't get an error that this
+        // table already exists when the stored database schema file gets executed.
+        $this->migrator->deleteRepository();
 
-        $this->newLine();
+        $connection->getSchemaState()->handleOutputUsing(function ($type, $buffer) {
+            $this->output->write($buffer);
+        })->load($path);
+
+        $runTime = number_format((microtime(true) - $startTime) * 1000, 2);
 
         // Finally, we will fire an event that this schema has been loaded so developers
         // can perform any post schema load tasks that are necessary in listeners for
@@ -163,6 +152,8 @@ class MigrateCommand extends BaseCommand
         $this->dispatcher->dispatch(
             new SchemaLoaded($connection, $path)
         );
+
+        $this->line('<info>Loaded stored database schema.</info> ('.$runTime.'ms)');
     }
 
     /**

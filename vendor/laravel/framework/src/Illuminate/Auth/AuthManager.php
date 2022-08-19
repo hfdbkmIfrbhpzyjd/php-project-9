@@ -50,7 +50,9 @@ class AuthManager implements FactoryContract
     {
         $this->app = $app;
 
-        $this->userResolver = fn ($guard = null) => $this->guard($guard)->user();
+        $this->userResolver = function ($guard = null) {
+            return $this->guard($guard)->user();
+        };
     }
 
     /**
@@ -137,10 +139,6 @@ class AuthManager implements FactoryContract
             $guard->setRequest($this->app->refresh('request', $guard, 'setRequest'));
         }
 
-        if (isset($config['remember'])) {
-            $guard->setRememberDuration($config['remember']);
-        }
-
         return $guard;
     }
 
@@ -202,7 +200,9 @@ class AuthManager implements FactoryContract
 
         $this->setDefaultDriver($name);
 
-        $this->userResolver = fn ($name = null) => $this->guard($name)->user();
+        $this->userResolver = function ($name = null) {
+            return $this->guard($name)->user();
+        };
     }
 
     /**
@@ -293,31 +293,6 @@ class AuthManager implements FactoryContract
     public function hasResolvedGuards()
     {
         return count($this->guards) > 0;
-    }
-
-    /**
-     * Forget all of the resolved guard instances.
-     *
-     * @return $this
-     */
-    public function forgetGuards()
-    {
-        $this->guards = [];
-
-        return $this;
-    }
-
-    /**
-     * Set the application instance used by the manager.
-     *
-     * @param  \Illuminate\Contracts\Foundation\Application  $app
-     * @return $this
-     */
-    public function setApplication($app)
-    {
-        $this->app = $app;
-
-        return $this;
     }
 
     /**
