@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\UrlController;
+use App\Http\Controllers\UrlCheckController;
 
 /*
 |--------------------------------------------------------------------------
@@ -12,7 +14,12 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
+Route::get('/', function (): Illuminate\View\View {
+    return view('home');
+})->name('home');
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::resource('urls', UrlController::class)->except([
+   'create', 'update', 'edit'
+]);
+Route::post('urls/{id}/checks', [UrlCheckController::class, 'store'])
+    ->name('urls.checks.store');
